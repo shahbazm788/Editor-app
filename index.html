@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Mobile Code Editor</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Ace Editor CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/ace.js"></script>
+</head>
+<body>
+    <header class="toolbar">
+        <span class="logo">CodeEditor</span>
+        <div class="actions">
+            <button id="save-btn">Save</button>
+            <button id="preview-btn">Preview</button>
+        </div>
+    </header>
+
+    <main>
+        <div id="editor"></div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
