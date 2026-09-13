@@ -23,3 +23,16 @@ document.getElementById('preview-btn').addEventListener('click', function() {
     newWindow.document.write(code);
     newWindow.document.close();
 });
+
+// Register Service Worker for PWA
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js')
+            .then(function(reg) {
+                console.log('Service Worker registered:', reg);
+            })
+            .catch(function(err) {
+                console.log('Service Worker registration failed:', err);
+            });
+    });
+}
