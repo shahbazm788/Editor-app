@@ -1,28 +1,148 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Mobile Code Editor</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#000000">
-    <!-- Ace Editor CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.6/ace.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>URD Editor</title>
+<link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#12141c">
+
+<link rel="stylesheet" data-name="vs/editor/editor.main"
+  href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs/editor/editor.main.css">
+<script>
+  var require = { paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs' } };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.47.0/min/vs/loader.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/3.2.5/standalone.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/3.2.5/plugins/html.mjs" type="module"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/3.2.5/plugins/postcss.mjs" type="module"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/3.2.5/plugins/babel.mjs" type="module"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/3.2.5/plugins/estree.mjs" type="module"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prettier/3.2.5/plugins/typescript.mjs" type="module"></script>
 </head>
 <body>
-    <header class="toolbar">
-        <span class="logo">CodeEditor</span>
-        <div class="actions">
-            <button id="save-btn">Save</button>
-            <button id="preview-btn">Preview</button>
-        </div>
-    </header>
 
-    <main>
-        <div id="editor"></div>
+<div id="app">
+
+  <header class="toolbar">
+    <div class="toolbar-left">
+      <button id="toggle-sidebar" class="icon-btn" title="Files">☰</button>
+      <span class="brand">URD<span class="brand-accent">editor</span></span>
+    </div>
+    <div class="toolbar-center">
+      <span id="active-filename" class="active-filename">no file open</span>
+    </div>
+    <div class="toolbar-right">
+      <button id="btn-format" class="tool-btn" title="Format code (Prettier)">Format</button>
+      <button id="btn-save" class="tool-btn" title="Save file">Save</button>
+      <button id="btn-preview" class="tool-btn tool-btn-accent" title="Live preview">Preview</button>
+      <button id="btn-open-browser" class="tool-btn" title="Open in system browser">Open in Browser</button>
+      <button id="btn-settings" class="icon-btn" title="Settings">⚙</button>
+    </div>
+  </header>
+
+  <div class="workspace">
+
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <span>FILES</span>
+        <div class="sidebar-actions">
+          <button id="btn-new-file" class="icon-btn small" title="New file">+</button>
+          <button id="btn-pick-files" class="icon-btn small" title="Import files">📄</button>
+          <button id="btn-pick-folder" class="icon-btn small" title="Import folder">📂</button>
+        </div>
+      </div>
+      <ul id="file-list" class="file-list"></ul>
+    </aside>
+
+    <main class="editor-area">
+      <div id="editor-pane" class="editor-pane">
+        <div id="monaco-container"></div>
+        <div id="empty-state" class="empty-state">
+          <p>Create or open a file to start coding.</p>
+        </div>
+      </div>
     </main>
 
-    <script src="script.js"></script>
+  </div>
+
+  <footer class="statusbar">
+    <span id="status-lang">plaintext</span>
+    <span id="status-msg" class="status-msg"></span>
+  </footer>
+
+</div>
+
+<!-- Fullscreen preview overlay -->
+<div id="preview-overlay" class="preview-overlay hidden">
+  <div class="preview-topbar">
+    <span>PREVIEW</span>
+    <button id="btn-close-preview" class="icon-btn small">✕ Close</button>
+  </div>
+  <iframe id="preview-frame" sandbox="allow-scripts allow-modals"></iframe>
+</div>
+
+<!-- Settings modal -->
+<div id="settings-overlay" class="settings-overlay hidden">
+  <div class="settings-box">
+    <div class="settings-header">
+      <span>EDITOR SETTINGS</span>
+      <button id="btn-close-settings" class="icon-btn small">✕</button>
+    </div>
+
+    <label class="setting-row">
+      <span>Font size</span>
+      <input type="number" id="setting-font-size" min="10" max="32" step="1">
+    </label>
+
+    <label class="setting-row">
+      <span>Font family</span>
+      <select id="setting-font-family">
+        <option value="JetBrains Mono, Fira Code, ui-monospace, monospace">JetBrains Mono (default)</option>
+        <option value="Fira Code, ui-monospace, monospace">Fira Code</option>
+        <option value="Consolas, ui-monospace, monospace">Consolas</option>
+        <option value="'Courier New', monospace">Courier New</option>
+        <option value="custom">Custom…</option>
+      </select>
+    </label>
+
+    <label class="setting-row" id="custom-font-row" style="display:none">
+      <span>Custom font name</span>
+      <input type="text" id="setting-custom-font" placeholder="e.g. Cascadia Code">
+    </label>
+
+    <label class="setting-row">
+      <span>Word wrap</span>
+      <input type="checkbox" id="setting-word-wrap">
+    </label>
+
+    <label class="setting-row">
+      <span>Minimap</span>
+      <input type="checkbox" id="setting-minimap">
+    </label>
+
+    <label class="setting-row">
+      <span>Autosave</span>
+      <input type="checkbox" id="setting-autosave">
+    </label>
+
+    <label class="setting-row" id="autosave-delay-row">
+      <span>Autosave delay (ms)</span>
+      <input type="number" id="setting-autosave-delay" min="300" max="5000" step="100">
+    </label>
+
+    <label class="setting-row">
+      <span>Tab size</span>
+      <input type="number" id="setting-tab-size" min="2" max="8" step="1">
+    </label>
+  </div>
+</div>
+
+<input type="file" id="hidden-file-input" style="display:none" multiple>
+<input type="file" id="hidden-folder-input" style="display:none" webkitdirectory directory multiple>
+
+<script src="script.js"></script>
 </body>
 </html>
