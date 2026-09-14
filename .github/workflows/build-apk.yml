@@ -1,4 +1,4 @@
-name: Build APK
+Name: Build APK
 
 on:
   workflow_dispatch:
@@ -254,13 +254,18 @@ jobs:
           }
           EOF
 
-      - name: Fix Kotlin stdlib duplicate class conflict
+      - name: Fix Kotlin and Browser compatibility conflicts
         run: |
           cat >> android/app/build.gradle << 'EOF'
 
           configurations.all {
               exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
               exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+              resolutionStrategy.eachDependency { details ->
+                  if (details.requested.group == 'androidx.browser' && details.requested.name == 'browser') {
+                      details.useVersion '1.8.0'
+                  }
+              }
           }
           EOF
 
